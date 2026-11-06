@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile participating in the auction.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 150 },
+        "selectedTeamId": { "type": "string", "maxLength": 10 },
+        "role": { "type": "string", "enum": ["Owner", "Auctioneer", "Spectator"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "displayName", "selectedTeamId", "role"]
+    },
+    "AuctionRoom": {
+      "title": "AuctionRoom",
+      "description": "Multiplayer live bidding room with synchronized state and 10-franchise retention enforcement.",
+      "type": "object",
+      "properties": {
+        "roomId": { "type": "string", "maxLength": 64 },
+        "code": { "type": "string", "maxLength": 16 },
+        "name": { "type": "string", "maxLength": 100 },
+        "hostId": { "type": "string", "maxLength": 128 },
+        "format": { "type": "string", "enum": ["Mega Auction", "Mini Auction", "Mega Auction 2027", "Mini Auction 2027"] },
+        "status": {
+          "type": "string",
+          "enum": [
+            "WAITING_FOR_PARTICIPANTS",
+            "TEAM_SELECTION",
+            "READY_TO_START",
+            "RETENTION_PHASE",
+            "RETENTION_SUBMITTED",
+            "RETENTION_FINALIZED",
+            "AUCTION_READY",
+            "LIVE_AUCTION",
+            "AUCTION_PAUSED",
+            "AUCTION_COMPLETED",
+            "lobby",
+            "live",
+            "paused",
+            "completed"
+          ]
+        },
+        "retentions": {
+          "type": "object",
+          "description": "Retention decisions of all 10 IPL franchises required to transition to LIVE_AUCTION."
+        },
+        "teamAssignments": {
+          "type": "object",
+          "description": "Team allocations for managers and AI bots across the 10 franchises."
+        },
+        "currentPlayerId": { "type": "string", "maxLength": 32 },
+        "highestBidAmount": { "type": "number" },
+        "highestBidderTeamId": { "type": "string", "maxLength": 10 },
+        "bidTimerSeconds": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["code", "name", "hostId", "status"]
+    },
+    "Bid": {
+      "title": "Bid",
+      "description": "An individual bid transaction placed on the active player.",
+      "type": "object",
+      "properties": {
+        "bidId": { "type": "string", "maxLength": 64 },
+        "roomId": { "type": "string", "maxLength": 64 },
+        "playerId": { "type": "string", "maxLength": 32 },
+        "teamId": { "type": "string", "maxLength": 10 },
+        "amount": { "type": "number" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["bidId", "roomId", "playerId", "teamId", "amount", "userId", "timestamp"]
+    },
+    "TradeProposal": {
+      "title": "TradeProposal",
+      "description": "Inter-franchise trade offer between two teams.",
+      "type": "object",
+      "properties": {
+        "tradeId": { "type": "string", "maxLength": 64 },
+        "fromTeamId": { "type": "string", "maxLength": 10 },
+        "toTeamId": { "type": "string", "maxLength": 10 },
+        "offeredPlayerIds": { "type": "string" },
+        "requestedPlayerIds": { "type": "string" },
+        "cashAdjustment": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["tradeId", "fromTeamId", "toTeamId", "status", "cashAdjustment"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Collection of user profiles."
+    },
+    "/rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/AuctionRoom" },
+      "description": "Multiplayer war rooms."
+    },
+    "/rooms/{roomId}/bids/{bidId}": {
+      "schema": { "$ref": "#/entities/Bid" },
+      "description": "Subcollection of all bids placed within a room."
+    },
+    "/trades/{tradeId}": {
+      "schema": { "$ref": "#/entities/TradeProposal" },
+      "description": "Inter-franchise player trades."
+    }
+  }
+}

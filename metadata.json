@@ -1,0 +1,6 @@
+{
+  "name": "IPL Auction Arena 2027",
+  "description": "Professional IPL 2027 Mega Auction platform featuring real-time bidding room, franchise squad retention & releases, trade centre, and broadcast-grade live auction arena.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

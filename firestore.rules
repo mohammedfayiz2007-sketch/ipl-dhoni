@@ -1,0 +1,167 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 64 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // User Profile Validation Helper
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'selectedTeamId', 'role']) &&
+             data.keys().hasOnly(['uid', 'displayName', 'email', 'selectedTeamId', 'role', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100 &&
+             data.selectedTeamId is string && data.selectedTeamId.size() <= 10 &&
+             data.role in ['Owner', 'Auctioneer', 'Spectator'];
+    }
+
+    // Validates that all 10 IPL franchises have submitted & locked retention decisions
+    function hasAllTenConfirmedRetentions(data) {
+      return ('retentions' in data) &&
+             data.retentions is map &&
+             data.retentions.keys().hasAll([
+               'csk', 'mi', 'rcb', 'kkr', 'srh', 'rr', 'dc', 'gt', 'lsg', 'pbks'
+             ]) &&
+             data.retentions['csk'].isConfirmed == true &&
+             data.retentions['mi'].isConfirmed == true &&
+             data.retentions['rcb'].isConfirmed == true &&
+             data.retentions['kkr'].isConfirmed == true &&
+             data.retentions['srh'].isConfirmed == true &&
+             data.retentions['rr'].isConfirmed == true &&
+             data.retentions['dc'].isConfirmed == true &&
+             data.retentions['gt'].isConfirmed == true &&
+             data.retentions['lsg'].isConfirmed == true &&
+             data.retentions['pbks'].isConfirmed == true;
+    }
+
+    // Guard against unauthorized or premature state transition to 'LIVE_AUCTION'
+    function canTransitionToLiveAuction(incomingData, existingData) {
+      return (incomingData.status != 'LIVE_AUCTION' && incomingData.status != 'live') ||
+             (existingData != null && ('status' in existingData) && (existingData.status == 'LIVE_AUCTION' || existingData.status == 'AUCTION_PAUSED' || existingData.status == 'live')) ||
+             hasAllTenConfirmedRetentions(incomingData);
+    }
+
+    function isValidStatus(status) {
+      return status in [
+        'WAITING_FOR_PARTICIPANTS',
+        'TEAM_SELECTION',
+        'READY_TO_START',
+        'RETENTION_PHASE',
+        'RETENTION_SUBMITTED',
+        'RETENTION_FINALIZED',
+        'AUCTION_READY',
+        'LIVE_AUCTION',
+        'AUCTION_PAUSED',
+        'AUCTION_COMPLETED',
+        'lobby',
+        'live',
+        'paused',
+        'completed'
+      ];
+    }
+
+    // Auction Room Validation Helper
+    function isValidRoom(data) {
+      return data.keys().hasAll(['code', 'name', 'hostId', 'status']) &&
+             data.code is string && data.code.size() <= 16 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.hostId is string && data.hostId.size() <= 128 &&
+             isValidStatus(data.status);
+    }
+
+    // Bid Validation Helper
+    function isValidBid(data, roomId) {
+      return data.keys().hasAll(['bidId', 'roomId', 'playerId', 'teamId', 'amount', 'userId', 'timestamp']) &&
+             data.keys().hasOnly(['bidId', 'roomId', 'playerId', 'teamId', 'amount', 'userId', 'timestamp']) &&
+             data.bidId is string && data.bidId.size() <= 64 &&
+             data.roomId == roomId &&
+             data.playerId is string && data.playerId.size() <= 32 &&
+             data.teamId is string && data.teamId.size() <= 10 &&
+             data.amount is number && data.amount > 0 && data.amount <= 100 &&
+             data.userId == request.auth.uid &&
+             data.timestamp is number;
+    }
+
+    // Trade Proposal Validation Helper
+    function isValidTrade(data) {
+      return data.keys().hasAll(['tradeId', 'fromTeamId', 'toTeamId', 'status', 'cashAdjustment']) &&
+             data.keys().hasOnly(['tradeId', 'fromTeamId', 'toTeamId', 'offeredPlayerIds', 'requestedPlayerIds', 'cashAdjustment', 'status', 'timestamp']) &&
+             data.tradeId is string && data.tradeId.size() <= 64 &&
+             data.fromTeamId is string && data.fromTeamId.size() <= 10 &&
+             data.toTeamId is string && data.toTeamId.size() <= 10 &&
+             data.cashAdjustment is number &&
+             data.status in ['pending', 'accepted', 'rejected'];
+    }
+
+    // User Profile Rules
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId);
+      allow list: if false; // Disallow arbitrary listing of all user accounts
+      allow create: if isSignedIn() && (request.auth.uid == userId) && isValidId(userId) && isValidUser(incoming());
+      allow update: if isSignedIn() && (request.auth.uid == userId) && isValidId(userId) && isValidUser(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'selectedTeamId', 'role']);
+      allow delete: if false;
+    }
+
+    // Room Rules
+    match /rooms/{roomId} {
+      allow get: if isSignedIn() && isValidId(roomId);
+      allow list: if isSignedIn(); // Allow rooms discovery
+      allow create: if isSignedIn() && 
+                    isValidId(roomId) && 
+                    incoming().hostId == request.auth.uid && 
+                    isValidRoom(incoming()) &&
+                    canTransitionToLiveAuction(incoming(), null);
+
+      allow update: if isSignedIn() && 
+                    isValidId(roomId) && 
+                    isValidRoom(incoming()) &&
+                    canTransitionToLiveAuction(incoming(), existing()) && (
+        // Host state updates (managing auction phases, timer, players, status)
+        (existing().hostId == request.auth.uid) ||
+        // Bidder updating highest bid
+        (incoming().diff(existing()).affectedKeys().hasOnly(['highestBidAmount', 'highestBidderTeamId', 'currentBid', 'bidHistory', 'updatedAt']) && 
+         (('highestBidAmount' in incoming() && 'highestBidAmount' in existing() && incoming().highestBidAmount > existing().highestBidAmount) ||
+          ('currentBid' in incoming()))) ||
+        // Participant selecting team or submitting retention for their franchise
+        (incoming().diff(existing()).affectedKeys().hasOnly(['teamAssignments', 'retentions', 'participants', 'updatedAt']))
+      );
+      allow delete: if isSignedIn() && isValidId(roomId) && existing().hostId == request.auth.uid;
+
+      // Subcollection: Bids placed within this room
+      match /bids/{bidId} {
+        allow get, list: if isSignedIn() && isValidId(roomId) && isValidId(bidId);
+        allow create: if isSignedIn() && isValidId(roomId) && isValidId(bidId) && isValidBid(incoming(), roomId);
+        allow update, delete: if false; // Bids are immutable historical ledger records
+      }
+    }
+
+    // Trade Rules
+    match /trades/{tradeId} {
+      allow get, list: if isSignedIn() && isValidId(tradeId);
+      allow create: if isSignedIn() && isValidId(tradeId) && isValidTrade(incoming());
+      allow update: if isSignedIn() && isValidId(tradeId) && isValidTrade(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+      allow delete: if false;
+    }
+  }
+}

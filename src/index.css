@@ -1,0 +1,204 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* OBSIDIAN ROYAL – IPL AUCTION ARENA PALETTE */
+  --color-obsidian-navy: #090D1B;
+  --color-midnight-blue: #11182B;
+  --color-royal-midnight: #171D35;
+  --color-deep-slate: #202944;
+  --color-electric-violet: #A78BFA;
+  --color-electric-violet-hover: #9065F7;
+  --color-neon-cyan: #00D6D0;
+  --color-neon-cyan-glow: rgba(0, 214, 208, 0.25);
+  --color-champagne-gold: #E8BD68;
+  --color-champagne-gold-glow: rgba(232, 189, 104, 0.25);
+  --color-ice-white: #F5F4FF;
+  --color-muted-lavender: #A5A9C3;
+  --color-status-success: #20C997;
+  --color-status-error: #FF5C75;
+  --color-status-warning: #FFB84D;
+}
+
+:root {
+  /* LIGHT MODE (Luxury clean ivory, cool slate, violet & gold) */
+  --bg-primary: #F4F6FB;
+  --bg-secondary: #E9EDF5;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F0F4FA;
+  --border-subtle: #D8DFEE;
+  --border-card: #E2E8F4;
+  --border-accent: rgba(139, 92, 246, 0.3);
+  --text-primary: #0C1222;
+  --text-secondary: #4A5568;
+  --text-muted: #718096;
+  --accent-violet: #7C3AED;
+  --accent-violet-hover: #6D28D9;
+  --accent-cyan: #089793;
+  --accent-gold: #C69232;
+  --color-success: #059669;
+  --color-error: #E11D48;
+  --color-warning: #D97706;
+  --shadow-card: 0 4px 20px -2px rgba(12, 18, 34, 0.06), 0 2px 6px -1px rgba(12, 18, 34, 0.04);
+}
+
+.dark {
+  /* DARK MODE (OBSIDIAN ROYAL – Luxury Sports Technology) */
+  --bg-primary: #090D1B;
+  --bg-secondary: #11182B;
+  --bg-card: #171D35;
+  --bg-elevated: #202944;
+  --border-subtle: #202944;
+  --border-card: rgba(167, 139, 250, 0.12);
+  --border-accent: rgba(167, 139, 250, 0.4);
+  --text-primary: #F5F4FF;
+  --text-secondary: #A5A9C3;
+  --text-muted: #6C7293;
+  --accent-violet: #A78BFA;
+  --accent-violet-hover: #C4B5FD;
+  --accent-cyan: #00D6D0;
+  --accent-gold: #E8BD68;
+  --color-success: #20C997;
+  --color-error: #FF5C75;
+  --color-warning: #FFB84D;
+  --shadow-card: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(167, 139, 250, 0.1);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+h1, h2, h3, h4, h5, h6, .font-heading {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-num, .font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(165, 169, 195, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(167, 139, 250, 0.45);
+}
+
+/* Obsidian Royal Ambient Utilities */
+.bg-obsidian-base {
+  background-color: var(--bg-primary);
+}
+.bg-obsidian-surface {
+  background-color: var(--bg-secondary);
+}
+.bg-obsidian-card {
+  background-color: var(--bg-card);
+}
+.bg-obsidian-elevated {
+  background-color: var(--bg-elevated);
+}
+.border-obsidian {
+  border-color: var(--border-subtle);
+}
+.border-obsidian-card {
+  border-color: var(--border-card);
+}
+.text-obsidian-primary {
+  color: var(--text-primary);
+}
+.text-obsidian-secondary {
+  color: var(--text-secondary);
+}
+.text-obsidian-muted {
+  color: var(--text-muted);
+}
+
+/* Glassmorphism Card Style */
+.obsidian-glass {
+  background: rgba(23, 29, 53, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(167, 139, 250, 0.12);
+}
+
+.dark .obsidian-glass {
+  background: rgba(23, 29, 53, 0.85);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+}
+
+:not(.dark) .obsidian-glass {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(216, 223, 238, 0.9);
+}
+
+/* Glowing Accent Borders */
+.glow-cyan {
+  box-shadow: 0 0 20px -3px rgba(0, 214, 208, 0.35);
+}
+
+.glow-violet {
+  box-shadow: 0 0 25px -4px rgba(167, 139, 250, 0.4);
+}
+
+.glow-gold {
+  box-shadow: 0 0 25px -4px rgba(232, 189, 104, 0.45);
+}
+
+/* Auction Pulse & Hammer Keyframes */
+@keyframes bidPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+.animate-bid-pulse {
+  animation: bidPulse 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes hammerHit {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-35deg); }
+  65% { transform: rotate(18deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-hammer {
+  animation: hammerHit 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes liveRadarPulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(0.95); opacity: 0; }
+}
+
+.animate-radar {
+  animation: liveRadarPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Stadium Spotlight Backdrop */
+.stadium-lighting {
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.15), transparent 50%),
+    radial-gradient(circle at 10% 20%, rgba(0, 214, 208, 0.08), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(232, 189, 104, 0.1), transparent 40%);
+}
